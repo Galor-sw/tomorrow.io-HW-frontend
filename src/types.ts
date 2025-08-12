@@ -183,6 +183,17 @@ export interface AlertListProps {
   onDeleteAlert: (id: string) => void;
 }
 
+export interface ExtendedAlertListProps extends AlertListProps {
+  onDeleteAlert: (id: string) => void;
+  onShowDeleteConfirmation: (id: string, location: string) => void;
+}
+
+export interface DeleteConfirmationState {
+  isOpen: boolean;
+  alertId: string;
+  alertLocation: string;
+}
+
 // Popup Interface
 export interface PopupProps {
   isOpen: boolean;

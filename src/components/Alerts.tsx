@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Alert } from '../types';
 // eslint-disable-next-line no-unused-vars
-import type { AlertFormData, PopupState } from '../types';
+import type { AlertFormData, PopupState, DeleteConfirmationState } from '../types';
 import Popup from './Popup';
 import AlertForm from './AlertForm';
 import AlertList from './AlertList';
@@ -20,12 +20,34 @@ const Alerts: React.FC = () => {
     message: ''
   });
 
+  const [deleteConfirmation, setDeleteConfirmation] = useState<DeleteConfirmationState>({
+    isOpen: false,
+    alertId: '',
+    alertLocation: ''
+  });
+
   const showPopup = (type: 'success' | 'error', title: string, message: string) => {
     setPopup({ isOpen: true, type, title, message });
   };
 
   const closePopup = () => {
     setPopup(prev => ({ ...prev, isOpen: false }));
+  };
+
+  const showDeleteConfirmation = (alertId: string, alertLocation: string) => {
+    setDeleteConfirmation({
+      isOpen: true,
+      alertId,
+      alertLocation
+    });
+  };
+
+  const closeDeleteConfirmation = () => {
+    setDeleteConfirmation({
+      isOpen: false,
+      alertId: '',
+      alertLocation: ''
+    });
   };
 
   const fetchParameters = async () => {
@@ -93,7 +115,7 @@ const Alerts: React.FC = () => {
 
     try {
       const requestBody = {
-        userId: "6898cd97055022e2cea0a786",
+        userId: "6898cd97055022e2cea0a786", // right now we are using a hardcoded user id, but we should change it to the user id of the current user when we implement authentication
         locationText: formData.location.toLowerCase(),
         parameter: formData.parameter,
         operator: formData.operator,
@@ -143,10 +165,26 @@ const Alerts: React.FC = () => {
 
   const handleDeleteAlert = async (id: string) => {
     try {
-      setAlerts(alerts.filter(alert => alert.id !== id));
+      const response = await fetch('http://localhost:3001/api/alerts', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ _id: id })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        showPopup('success', 'Alert Deleted', result.message);
+        await fetchAlerts(); // Refresh the alerts list
+      } else {
+        const errorData = await response.json().catch(() => ({ message: 'Unknown error occurred' }));
+        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+      }
     } catch (error) {
       console.error('Error deleting alert:', error);
-      setError('Failed to delete alert');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to delete alert';
+      showPopup('error', 'Failed to Delete Alert', errorMessage);
     }
   };
 
@@ -223,19 +261,55 @@ const Alerts: React.FC = () => {
               alerts={alerts}
               onToggleAlert={handleToggleAlert}
               onDeleteAlert={handleDeleteAlert}
+              onShowDeleteConfirmation={showDeleteConfirmation}
             />
           </div>
         </div>
       </div>
 
+      {/* Success/Error Popup */}
       <Popup
         isOpen={popup.isOpen}
         onClose={closePopup}
         type={popup.type}
         title={popup.title}
         message={popup.message}
-        duration={4000}
       />
+
+      {/* Delete Confirmation Popup */}
+      {deleteConfirmation.isOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <div className="flex items-center mb-4">
+              <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center mr-3">
+                <span className="text-red-600 text-lg">⚠️</span>
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900">Delete Alert</h3>
+            </div>
+            <p className="text-gray-600 mb-6">
+              Are you sure you want to delete the alert for <strong>{deleteConfirmation.alertLocation}</strong>? 
+              This action cannot be undone.
+            </p>
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={closeDeleteConfirmation}
+                className="px-4 py-2 text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  handleDeleteAlert(deleteConfirmation.alertId);
+                  closeDeleteConfirmation();
+                }}
+                className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { NavigationProps } from '../types';
+// eslint-disable-next-line no-unused-vars
+import type { NavigationProps } from '../types';
 
 const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -8,7 +9,7 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }) => {
   const tabs = [
     { id: 'home', label: 'Home', icon: '🏠' },
     { id: 'alerts', label: 'Alerts', icon: '⚠️' },
-    { id: 'current-state', label: 'Current State', icon: '📊' }
+    { id: 'current-state', label: 'Current State', icon: '🔴' }
   ];
 
   // Close mobile menu when clicking outside or pressing Escape
@@ -75,9 +76,15 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }) => {
                 }`}
               >
                 <span className="text-xl mr-3">{tab.icon}</span>
-                {isDesktopExpanded && (
-                  <span className="font-medium whitespace-nowrap">{tab.label}</span>
-                )}
+                <span 
+                  className={`font-medium whitespace-nowrap transition-all duration-300 ease-in-out ${
+                    isDesktopExpanded 
+                      ? 'opacity-100 max-w-32' 
+                      : 'opacity-0 max-w-0 overflow-hidden'
+                  }`}
+                >
+                  {tab.label}
+                </span>
               </button>
             ))}
           </nav>

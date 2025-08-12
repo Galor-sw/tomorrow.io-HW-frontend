@@ -1,10 +1,10 @@
 import React from 'react';
 // eslint-disable-next-line no-unused-vars
-import type { Alert, AlertListProps } from '../types';
+import type { Alert, AlertListProps, ExtendedAlertListProps } from '../types';
 import { getParameterIcon, getParameterLabel, getParameterUnit, getStatusColor, getStatusIcon } from '../utils/weatherUtils';
 
-const AlertList: React.FC<AlertListProps> = (props) => {
-  const { alerts, onToggleAlert, onDeleteAlert } = props;
+const AlertList: React.FC<ExtendedAlertListProps> = (props) => {
+  const { alerts, onToggleAlert, onShowDeleteConfirmation } = props;
 
   if (alerts.length === 0) {
     return (
@@ -68,7 +68,7 @@ const AlertList: React.FC<AlertListProps> = (props) => {
                     {alert.isActive ? '🟢 Active' : '⚪ Inactive'}
                   </button>
                   <button
-                    onClick={() => onDeleteAlert(alert.id)}
+                    onClick={() => onShowDeleteConfirmation(alert.id, alert.location)}
                     className="px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 hover:bg-red-200 transition-colors"
                   >
                     🗑️ Delete

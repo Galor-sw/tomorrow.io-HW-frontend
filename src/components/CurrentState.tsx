@@ -9,6 +9,7 @@ const CurrentState: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<string>('');
+  const [limit, setLimit] = useState<string>('20');
 
   const convertBackendTriggeredAlert = (backendAlert: BackendTriggeredAlert): TriggeredAlert => {
     return {
@@ -28,8 +29,11 @@ const CurrentState: React.FC = () => {
       setLoading(true);
       setError(null);
       
-      // Fetch triggered alerts from backend using the correct endpoint
-      const response = await fetch('http://localhost:3001/api/triggered-alerts');
+      // Build URL with limit parameter
+      const limitParam = limit === 'all' ? '' : `?limit=${limit}`;
+      const url = `http://localhost:3001/api/triggered-alerts${limitParam}`;
+      
+      const response = await fetch(url);
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -47,53 +51,60 @@ const CurrentState: React.FC = () => {
     } catch (error) {
       console.error('Error fetching triggered alerts:', error);
       setError('Failed to fetch triggered alerts from server');
-      
-      // Fallback to mock data for development
-      const mockAlerts: TriggeredAlert[] = [
-        {
-          id: '1',
-          location: 'Tel Aviv',
-          parameter: 'temperature',
-          threshold: 30,
-          operator: 'above',
-          currentValue: 32,
-          triggeredAt: new Date().toLocaleString(),
-          severity: 'medium'
-        },
-        {
-          id: '2',
-          location: 'Jerusalem',
-          parameter: 'humidity',
-          threshold: 80,
-          operator: 'above',
-          currentValue: 85,
-          triggeredAt: new Date(Date.now() - 300000).toLocaleString(), // 5 minutes ago
-          severity: 'medium'
-        }
-      ];
-      
-      setTriggeredAlerts(mockAlerts);
-      setLastUpdated(new Date().toLocaleString());
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [limit]);
+
+  const fetchWithLimit = async (limitValue: string) => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Build URL with limit parameter
+      const limitParam = limitValue === 'all' ? '' : `?limit=${limitValue}`;
+      const url = `http://localhost:3001/api/triggered-alerts${limitParam}`;
+      
+      const response = await fetch(url);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const backendTriggeredAlerts: BackendTriggeredAlert[] = await response.json();
+      
+      // Convert and sort by most recent first (using dateTriggered)
+      const convertedAlerts: TriggeredAlert[] = backendTriggeredAlerts
+        .map(convertBackendTriggeredAlert)
+        .sort((a, b) => new Date(b.triggeredAt).getTime() - new Date(a.triggeredAt).getTime());
+      
+      setTriggeredAlerts(convertedAlerts);
+      setLastUpdated(new Date().toLocaleString());
+    } catch (error) {
+      console.error('Error fetching triggered alerts:', error);
+      setError('Failed to fetch triggered alerts from server');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     fetchTriggeredAlerts();
-    
-    // Refresh every 30 seconds
-    const interval = setInterval(fetchTriggeredAlerts, 30000);
-    
-    return () => clearInterval(interval);
   }, [fetchTriggeredAlerts]);
+
+  const handleLimitChange = (e: React.FormEvent) => {
+    e.preventDefault();
+    fetchWithLimit(limit);
+    setLimit('');
+  };
+
+  const handleShowAll = () => {
+    fetchWithLimit('all');
+    setLimit(''); 
+  };
 
   const getAlertColor = () => {
     return 'bg-blue-100 text-blue-800 border-blue-200';
-  };
-
-  const getAlertIcon = () => {
-    return '🔵';
   };
 
   const getOperatorLabel = (operator: string) => {
@@ -155,6 +166,61 @@ const CurrentState: React.FC = () => {
             </div>
           </div>
 
+          {/* Modern Controls - Detached Under Header */}
+          <div className="mb-8">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <div className="flex items-center space-x-3">
+                  <label htmlFor="limit" className="text-sm font-semibold text-gray-700">Show:</label>
+                  <input
+                    id="limit"
+                    type="number"
+                    value={limit}
+                    onChange={(e) => setLimit(e.target.value)}
+                    placeholder="0"
+                    min="1"
+                    className="w-20 h-10 px-3 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 bg-white"
+                    disabled={loading}
+                  />
+                  <button
+                    onClick={handleLimitChange}
+                    disabled={loading || !limit.trim()}
+                    className="h-10 px-6 bg-blue-500 text-white rounded-xl text-sm font-semibold hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 transform hover:scale-105 active:scale-95"
+                  >
+                    {loading ? '...' : 'Apply'}
+                  </button>
+                  <button
+                    onClick={handleShowAll}
+                    disabled={loading}
+                    className="h-10 px-6 bg-gray-500 text-white rounded-xl text-sm font-semibold hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 transform hover:scale-105 active:scale-95"
+                  >
+                    Show All
+                  </button>
+                </div>
+              </div>
+
+              {/* Active Alerts Summary - Same Line */}
+              {triggeredAlerts.length > 0 && (
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center">
+                      <div className="w-6 h-6 bg-red-100 rounded-full flex items-center justify-center mr-2">
+                        <span className="text-red-600 text-xs">⚠️</span>
+                      </div>
+                      <div>
+                        <span className="text-sm font-medium text-gray-700">Active Alerts</span>
+                      </div>
+                    </div>
+                    <div className="text-right ml-3">
+                      <div className="text-xl font-bold text-gray-900">{triggeredAlerts.length}</div>
+                      <div className="text-xs text-gray-500">triggered</div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
           {triggeredAlerts.length === 0 ? (
             <div className="text-center py-12">
               <div className="text-6xl mb-4">✅</div>
@@ -164,15 +230,7 @@ const CurrentState: React.FC = () => {
             </div>
           ) : (
             <div className="space-y-4">
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-                <div className="flex items-center">
-                  <span className="text-blue-600 text-lg mr-2">⚠️</span>
-                  <span className="text-blue-800 font-medium">
-                    {triggeredAlerts.length} alert{triggeredAlerts.length !== 1 ? 's' : ''} currently triggered
-                  </span>
-                </div>
-              </div>
-
+              {/* Individual Alert Details */}
               {triggeredAlerts.map((alert, index) => (
                 <div
                   key={alert.id}
@@ -181,7 +239,6 @@ const CurrentState: React.FC = () => {
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
                       <div className="flex items-center mb-2">
-                        <span className="mr-2">{getAlertIcon()}</span>
                         <span className="mr-2">{getParameterIcon(alert.parameter)}</span>
                         <h3 className="font-semibold capitalize">{alert.location}</h3>
                         {index === 0 && (
