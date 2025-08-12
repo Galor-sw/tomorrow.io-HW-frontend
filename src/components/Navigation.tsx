@@ -1,16 +1,27 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 // eslint-disable-next-line no-unused-vars
 import type { NavigationProps } from '../types';
 
 const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isDesktopExpanded, setIsDesktopExpanded] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const tabs = [
-    { id: 'home', label: 'Home', icon: '🏠' },
-    { id: 'alerts', label: 'Alerts', icon: '⚠️' },
-    { id: 'current-state', label: 'Current State', icon: '🔴' }
+    { id: 'home', label: 'Home', icon: '🏠', path: '/home' },
+    { id: 'alerts', label: 'Alerts', icon: '⚠️', path: '/alerts' },
+    { id: 'current-state', label: 'Current State', icon: '🔴', path: '/current-state' }
   ];
+
+  // Sync activeTab with current URL
+  useEffect(() => {
+    const currentTab = tabs.find(tab => tab.path === location.pathname);
+    if (currentTab && currentTab.id !== activeTab) {
+      onTabChange(currentTab.id);
+    }
+  }, [location.pathname, activeTab, onTabChange]);
 
   // Close mobile menu when clicking outside or pressing Escape
   useEffect(() => {
@@ -38,8 +49,9 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }) => {
     };
   }, [isMobileMenuOpen]);
 
-  const handleTabClick = (tabId: string) => {
+  const handleTabClick = (tabId: string, path: string) => {
     onTabChange(tabId);
+    navigate(path);
     setIsMobileMenuOpen(false);
   };
 
@@ -68,7 +80,7 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }) => {
             {tabs.map((tab) => (
               <button
                 key={tab.id}
-                onClick={() => handleTabClick(tab.id)}
+                onClick={() => handleTabClick(tab.id, tab.path)}
                 className={`w-full flex items-center px-4 py-3 text-left transition-colors duration-200 ${
                   activeTab === tab.id
                     ? 'bg-blue-50 text-blue-600 border-r-2 border-blue-600'
@@ -152,7 +164,7 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }) => {
             {tabs.map((tab) => (
               <button
                 key={tab.id}
-                onClick={() => handleTabClick(tab.id)}
+                onClick={() => handleTabClick(tab.id, tab.path)}
                 className={`w-full flex items-center px-6 py-4 text-left transition-colors duration-200 ${
                   activeTab === tab.id
                     ? 'bg-blue-50 text-blue-600 border-r-2 border-blue-600'

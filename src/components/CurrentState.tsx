@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import type { TriggeredAlert } from '../types';
 // eslint-disable-next-line no-unused-vars
 import type { BackendTriggeredAlert } from '../types';
@@ -9,12 +9,18 @@ const CurrentState: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<string>('');
-  const [limit, setLimit] = useState<string>('20');
+  const [limit, setLimit] = useState<string>('');
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const convertBackendTriggeredAlert = (backendAlert: BackendTriggeredAlert): TriggeredAlert => {
+    // Add null checks to handle cases where alertId might be null
+    if (!backendAlert.alertId) {
+      throw new Error('Alert ID is missing from triggered alert data');
+    }
+
     return {
       id: backendAlert._id,
-      location: backendAlert.alertId.locationText,
+      location: backendAlert.alertId.locationText || 'Unknown Location',
       parameter: backendAlert.alertData.parameter,
       threshold: backendAlert.alertData.threshold,
       operator: backendAlert.alertData.operator === '>' || backendAlert.alertData.operator === '>=' ? 'above' : 'below',
@@ -24,46 +30,20 @@ const CurrentState: React.FC = () => {
     };
   };
 
-  const fetchTriggeredAlerts = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      // Build URL with limit parameter
-      const limitParam = limit === 'all' ? '' : `?limit=${limit}`;
-      const url = `http://localhost:3001/api/triggered-alerts${limitParam}`;
-      
-      const response = await fetch(url);
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const backendTriggeredAlerts: BackendTriggeredAlert[] = await response.json();
-      
-      // Convert and sort by most recent first (using dateTriggered)
-      const convertedAlerts: TriggeredAlert[] = backendTriggeredAlerts
-        .map(convertBackendTriggeredAlert)
-        .sort((a, b) => new Date(b.triggeredAt).getTime() - new Date(a.triggeredAt).getTime());
-      
-      setTriggeredAlerts(convertedAlerts);
-      setLastUpdated(new Date().toLocaleString());
-    } catch (error) {
-      console.error('Error fetching triggered alerts:', error);
-      setError('Failed to fetch triggered alerts from server');
-    } finally {
-      setLoading(false);
-    }
-  }, [limit]);
-
   const fetchWithLimit = async (limitValue: string) => {
     try {
       setLoading(true);
       setError(null);
       
       // Build URL with limit parameter
-      const limitParam = limitValue === 'all' ? '' : `?limit=${limitValue}`;
-      const url = `http://localhost:3001/api/triggered-alerts${limitParam}`;
+      let url: string;
+      if (limitValue === 'all') {
+        url = 'http://localhost:3001/api/triggered-alerts';
+      } else {
+        url = `http://localhost:3001/api/triggered-alerts/recent?limit=${limitValue}`;
+      }
+      
+      console.log('Fetching URL:', url); // Debug log
       
       const response = await fetch(url);
       
@@ -72,11 +52,22 @@ const CurrentState: React.FC = () => {
       }
       
       const backendTriggeredAlerts: BackendTriggeredAlert[] = await response.json();
+      console.log('Received alerts:', backendTriggeredAlerts.length); // Debug log
       
       // Convert and sort by most recent first (using dateTriggered)
       const convertedAlerts: TriggeredAlert[] = backendTriggeredAlerts
-        .map(convertBackendTriggeredAlert)
+        .map(alert => {
+          try {
+            return convertBackendTriggeredAlert(alert);
+          } catch (error) {
+            console.warn('Failed to convert alert:', error);
+            return null;
+          }
+        })
+        .filter((alert): alert is TriggeredAlert => alert !== null) // Filter out null alerts
         .sort((a, b) => new Date(b.triggeredAt).getTime() - new Date(a.triggeredAt).getTime());
+      
+      console.log('Converted alerts:', convertedAlerts.length); // Debug log
       
       setTriggeredAlerts(convertedAlerts);
       setLastUpdated(new Date().toLocaleString());
@@ -89,18 +80,24 @@ const CurrentState: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchTriggeredAlerts();
-  }, [fetchTriggeredAlerts]);
+    console.log('Initial load with limit 20'); // Debug log
+    fetchWithLimit('20'); // Use default limit of 20 for initial load
+  }, []);
 
   const handleLimitChange = (e: React.FormEvent) => {
     e.preventDefault();
-    fetchWithLimit(limit);
-    setLimit('');
+    const inputValue = inputRef.current?.value || '';
+    if (inputValue.trim()) {
+      console.log('Fetching with limit:', inputValue); // Debug log
+      fetchWithLimit(inputValue);
+      setLimit(''); // Clear the input after applying
+    }
   };
 
   const handleShowAll = () => {
+    console.log('Fetching all alerts'); // Debug log
     fetchWithLimit('all');
-    setLimit(''); 
+    setLimit(''); // Clear the input after showing all
   };
 
   const getAlertColor = () => {
@@ -143,7 +140,7 @@ const CurrentState: React.FC = () => {
             <div className="text-center py-12">
               <p className="text-red-600 mb-4">Error: {error}</p>
               <button
-                onClick={fetchTriggeredAlerts}
+                onClick={() => fetchWithLimit('20')} // Retry with default limit
                 className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
               >
                 Retry
@@ -181,6 +178,7 @@ const CurrentState: React.FC = () => {
                     min="1"
                     className="w-20 h-10 px-3 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 bg-white"
                     disabled={loading}
+                    ref={inputRef}
                   />
                   <button
                     onClick={handleLimitChange}
@@ -277,7 +275,7 @@ const CurrentState: React.FC = () => {
           {/* Refresh Button */}
           <div className="mt-6 text-center">
             <button
-              onClick={fetchTriggeredAlerts}
+              onClick={() => fetchWithLimit('20')} // Refresh with default limit
               className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
             >
               Refresh Status
