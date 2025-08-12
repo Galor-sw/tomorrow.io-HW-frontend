@@ -43,8 +43,6 @@ const CurrentState: React.FC = () => {
         url = `http://localhost:3001/api/triggered-alerts/recent?limit=${limitValue}`;
       }
       
-      console.log('Fetching URL:', url); // Debug log
-      
       const response = await fetch(url);
       
       if (!response.ok) {
@@ -52,7 +50,6 @@ const CurrentState: React.FC = () => {
       }
       
       const backendTriggeredAlerts: BackendTriggeredAlert[] = await response.json();
-      console.log('Received alerts:', backendTriggeredAlerts.length); // Debug log
       
       // Convert and sort by most recent first (using dateTriggered)
       const convertedAlerts: TriggeredAlert[] = backendTriggeredAlerts
@@ -67,8 +64,6 @@ const CurrentState: React.FC = () => {
         .filter((alert): alert is TriggeredAlert => alert !== null) // Filter out null alerts
         .sort((a, b) => new Date(b.triggeredAt).getTime() - new Date(a.triggeredAt).getTime());
       
-      console.log('Converted alerts:', convertedAlerts.length); // Debug log
-      
       setTriggeredAlerts(convertedAlerts);
       setLastUpdated(new Date().toLocaleString());
     } catch (error) {
@@ -80,7 +75,6 @@ const CurrentState: React.FC = () => {
   };
 
   useEffect(() => {
-    console.log('Initial load with limit 20'); // Debug log
     fetchWithLimit('20'); // Use default limit of 20 for initial load
   }, []);
 
@@ -88,14 +82,12 @@ const CurrentState: React.FC = () => {
     e.preventDefault();
     const inputValue = inputRef.current?.value || '';
     if (inputValue.trim()) {
-      console.log('Fetching with limit:', inputValue); // Debug log
       fetchWithLimit(inputValue);
       setLimit(''); // Clear the input after applying
     }
   };
 
   const handleShowAll = () => {
-    console.log('Fetching all alerts'); // Debug log
     fetchWithLimit('all');
     setLimit(''); // Clear the input after showing all
   };
