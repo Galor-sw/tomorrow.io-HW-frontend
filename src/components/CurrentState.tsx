@@ -101,7 +101,7 @@ const CurrentState: React.FC = () => {
   };
 
   const getAlertColor = () => {
-    return 'bg-blue-100 text-blue-800 border-blue-200';
+    return 'bg-red-100 text-red-800 border-red-200';
   };
 
   const getOperatorLabel = (operator: string) => {
@@ -156,17 +156,19 @@ const CurrentState: React.FC = () => {
     <div className="p-6">
       <div className="max-w-6xl mx-auto">
         <div className="bg-white rounded-lg shadow-lg p-6">
-          <div className="flex justify-between items-center mb-6">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6">
             <h2 className="text-2xl font-bold text-gray-900">Current Alert Status</h2>
-            <div className="text-sm text-gray-500">
+            <div className="text-sm text-gray-500 mt-2 sm:mt-0">
               Last updated: {lastUpdated}
             </div>
           </div>
 
           {/* Modern Controls - Detached Under Header */}
           <div className="mb-8">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
+            {/* Mobile: Stack vertically, Desktop: Side by side */}
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
+              {/* Controls Section */}
+              <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">
                 <div className="flex items-center space-x-3">
                   <label htmlFor="limit" className="text-sm font-semibold text-gray-700">Show:</label>
                   <input
@@ -180,26 +182,28 @@ const CurrentState: React.FC = () => {
                     disabled={loading}
                     ref={inputRef}
                   />
-                  <button
-                    onClick={handleLimitChange}
-                    disabled={loading || !limit.trim()}
-                    className="h-10 px-6 bg-blue-500 text-white rounded-xl text-sm font-semibold hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 transform hover:scale-105 active:scale-95"
-                  >
-                    {loading ? '...' : 'Apply'}
-                  </button>
-                  <button
-                    onClick={handleShowAll}
-                    disabled={loading}
-                    className="h-10 px-6 bg-gray-500 text-white rounded-xl text-sm font-semibold hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 transform hover:scale-105 active:scale-95"
-                  >
-                    Show All
-                  </button>
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={handleLimitChange}
+                      disabled={loading || !limit.trim()}
+                      className="h-10 px-4 sm:px-6 bg-blue-500 text-white rounded-xl text-sm font-semibold hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 transform hover:scale-105 active:scale-95"
+                    >
+                      {loading ? '...' : 'Apply'}
+                    </button>
+                    <button
+                      onClick={handleShowAll}
+                      disabled={loading}
+                      className="h-10 px-4 sm:px-6 bg-gray-500 text-white rounded-xl text-sm font-semibold hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 transform hover:scale-105 active:scale-95"
+                    >
+                      Show All
+                    </button>
+                  </div>
                 </div>
               </div>
 
-              {/* Active Alerts Summary - Same Line */}
+              {/* Active Alerts Summary - Mobile: Below controls, Desktop: Same line */}
               {triggeredAlerts.length > 0 && (
-                <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 w-full lg:w-auto">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center">
                       <div className="w-6 h-6 bg-red-100 rounded-full flex items-center justify-center mr-2">
@@ -254,17 +258,6 @@ const CurrentState: React.FC = () => {
                       <p className="text-xs opacity-75 mt-1">
                         Triggered at: {alert.triggeredAt}
                       </p>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-2xl font-bold">
-                        {alert.currentValue}
-                      </div>
-                      <div className="text-xs opacity-75">
-                        vs {alert.threshold}
-                      </div>
-                      <div className="text-xs opacity-75 mt-1">
-                        {getParameterUnit(alert.parameter)}
-                      </div>
                     </div>
                   </div>
                 </div>

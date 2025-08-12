@@ -110,7 +110,6 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }) => {
       <div className="lg:hidden">
         <header className="fixed top-0 left-0 right-0 bg-white shadow-sm z-40">
           <div className="flex items-center justify-between px-4 py-3">
-            <h1 className="text-lg font-bold text-gray-900">Weather Alert</h1>
             <button
               className="hamburger-button p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -139,6 +138,8 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }) => {
                 )}
               </svg>
             </button>
+            <h1 className="text-lg font-bold text-gray-900">Weather Alert</h1>
+            <div className="w-10"></div> {/* Spacer to center the title */}
           </div>
         </header>
 

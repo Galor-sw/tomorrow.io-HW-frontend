@@ -85,8 +85,8 @@ const Home: React.FC = () => {
     <div className="p-6">
       <div className="max-w-4xl mx-auto">
         <div className="bg-white rounded-lg shadow-lg p-6">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold text-gray-900">Current Weather</h2>
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4 sm:mb-0">Current Weather</h2>
             
             {/* Location Update Form */}
             <form onSubmit={handleLocationUpdate} className="flex items-center space-x-2">
